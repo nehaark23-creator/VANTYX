@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Search Term Triage Engine</title>
+<style>
+:root{
+  --bg:#f5f7fb;--card:#fff;--text:#172033;--muted:#667085;--line:#e6eaf0;
+  --blue:#2563eb;--green:#16a34a;--red:#dc2626;--amber:#d97706;--purple:#7c3aed;
+}
+*{box-sizing:border-box} body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text)}
+.app{display:flex;min-height:100vh}.sidebar{width:245px;background:#111827;color:#fff;padding:22px 16px;position:fixed;top:0;bottom:0}
+.logo{font-size:18px;font-weight:800;padding:8px 10px 24px}.logo span{color:#60a5fa}
+.nav{display:grid;gap:7px}.nav button{border:0;background:transparent;color:#cbd5e1;text-align:left;padding:11px 12px;border-radius:9px;cursor:pointer;font-size:14px}
+.nav button.active,.nav button:hover{background:#1f2937;color:#fff}.side-note{position:absolute;left:16px;right:16px;bottom:20px;padding:12px;background:#1f2937;border-radius:10px;color:#9ca3af;font-size:11px;line-height:1.5}
+.main{margin-left:245px;width:calc(100% - 245px);padding:22px 28px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.title h1{font-size:24px;margin:0 0 5px}.title p{margin:0;color:var(--muted);font-size:13px}
+.live{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);padding:9px 12px;border-radius:9px;font-size:12px}.dot{width:8px;height:8px;background:#22c55e;border-radius:50%;box-shadow:0 0 0 4px #dcfce7}
+.cards{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:18px}.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 2px #00000006}.label{font-size:12px;color:var(--muted)}.value{font-size:25px;font-weight:800;margin-top:7px}.sub{font-size:11px;color:var(--muted);margin-top:5px}.green{color:var(--green)}.red{color:var(--red)}.amber{color:var(--amber)}.blue{color:var(--blue)}
+.grid2{display:grid;grid-template-columns:1.35fr 1fr;gap:16px;margin-bottom:16px}.panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:17px}.panel h3{margin:0;font-size:15px}.panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}.small{font-size:11px;color:var(--muted)}
+.chart{height:210px;display:flex;align-items:flex-end;gap:9px;padding:12px 4px 5px;border-bottom:1px solid var(--line);border-left:1px solid var(--line)}
+.barwrap{flex:1;height:100%;display:flex;align-items:flex-end;gap:3px}.bar{width:50%;border-radius:4px 4px 0 0;min-height:3px}.prom{background:#60a5fa}.bloc{background:#f87171}.ign{background:#cbd5e1}.axis{display:flex;justify-content:space-between;color:#98a2b3;font-size:10px;margin-top:6px}
+.donutbox{display:flex;align-items:center;gap:25px;min-height:210px}.donut{width:150px;height:150px;border-radius:50%;background:conic-gradient(#60a5fa 0 42%,#f87171 42% 65%,#cbd5e1 65% 100%);position:relative}.donut:after{content:"";position:absolute;inset:35px;background:white;border-radius:50%}.legend{display:grid;gap:13px;font-size:12px}.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:7px}
+.toolbar{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:12px}.toolbar input,.toolbar select,.toolbar button,.upload{border:1px solid var(--line);background:#fff;border-radius:8px;padding:9px 11px;font-size:12px}.toolbar input{min-width:230px}.toolbar button,.upload{cursor:pointer}.primary{background:var(--blue)!important;color:#fff;border-color:var(--blue)!important}
+.table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse;font-size:12px}.table th{background:#f8fafc;color:#667085;text-align:left;font-weight:700}.table th,.table td{padding:12px 10px;border-bottom:1px solid var(--line);vertical-align:middle}.term{font-weight:650;max-width:250px}.pill{padding:4px 8px;border-radius:999px;font-size:10px;font-weight:700;display:inline-block}.p-promote{background:#dcfce7;color:#166534}.p-block{background:#fee2e2;color:#991b1b}.p-ignore{background:#eef2f7;color:#475467}.p-review{background:#fef3c7;color:#92400e}
+.conf{display:flex;align-items:center;gap:6px}.track{width:55px;height:6px;background:#edf0f4;border-radius:5px;overflow:hidden}.fill{height:100%;background:var(--blue);border-radius:5px}.reason{color:#475467;max-width:290px}.review{background:#fffbeb}
+.footer-note{margin-top:12px;font-size:11px;color:#667085}
+.hidden{display:none}
+@media(max-width:1000px){.sidebar{display:none}.main{margin-left:0;width:100%}.cards{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}}
+@media(max-width:600px){.cards{grid-template-columns:1fr}.main{padding:15px}.top{align-items:flex-start;gap:10px}.live{display:none}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+  <div class="logo">Triage<span>AI</span></div>
+  <div class="nav">
+    <button class="active" onclick="showSection('overview',this)">▦ Overview</button>
+    <button onclick="showSection('terms',this)">⌕ Search Terms</button>
+    <button onclick="showSection('review',this)">⚑ Human Review</button>
+    <button onclick="showSection('rules',this)">⚙ Decision Rules</button>
+  </div>
+  <div class="side-note"><b>Human-in-the-loop</b><br>Low-confidence decisions are automatically routed to review instead of being guessed.</div>
+</aside>
+
+<main class="main">
+  <div class="top">
+    <div class="title"><h1>Search Term Triage Engine</h1><p>Google Ads query classification · promote / block / ignore · human-in-the-loop</p></div>
+    <div class="live"><span class="dot"></span><span id="clock">Live</span></div>
+  </div>
+
+  <section id="overview">
+    <div class="cards">
+      <div class="card"><div class="label">Terms processed</div><div class="value" id="kpiTerms">25,000</div><div class="sub">Current uploaded dataset</div></div>
+      <div class="card"><div class="label">Promote</div><div class="value green" id="kpiPromote">10,480</div><div class="sub">High-value intent</div></div>
+      <div class="card"><div class="label">Block</div><div class="value red" id="kpiBlock">5,720</div><div class="sub">Irrelevant / unwanted</div></div>
+      <div class="card"><div class="label">Ignore</div><div class="value" id="kpiIgnore">6,930</div><div class="sub">Not enough evidence</div></div>
+      <div class="card"><div class="label">Human review</div><div class="value amber" id="kpiReview">1,870</div><div class="sub">Low-confidence queue</div></div>
+    </div>
+
+    <div class="grid2">
+      <div class="panel">
+        <div class="panel-head"><h3>Decision volume</h3><span class="small">Last 7 processing batches</span></div>
+        <div class="chart" id="barChart"></div>
+        <div class="axis"><span>Batch 1</span><span>Batch 4</span><span>Batch 7</span></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>Decision distribution</h3><span class="small">Current dataset</span></div>
+        <div class="donutbox">
+          <div class="donut"></div>
+          <div class="legend">
+            <div><i style="background:#60a5fa"></i>Promote <b id="legP">42%</b></div>
+            <div><i style="background:#f87171"></i>Block <b id="legB">23%</b></div>
+            <div><i style="background:#cbd5e1"></i>Ignore <b id="legI">28%</b></div>
+            <div><i style="background:#fbbf24"></i>Review <b id="legR">7%</b></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h3>Priority review queue</h3><span class="small">Sorted by lowest confidence</span></div>
+      <div class="table-wrap"><table class="table"><thead><tr><th>Search term</th><th>Decision</th><th>Confidence</th><th>Reason</th><th>Action</th></tr></thead><tbody id="reviewTable"></tbody></table></div>
+    </div>
+  </section>
+
+  <section id="terms" class="hidden">
+    <div class="panel">
+      <div class="panel-head"><h3>Search-term triage</h3><span class="small">Upload CSV to run the demo engine</span></div>
+      <div class="toolbar">
+        <input id="search" placeholder="Search terms..." oninput="renderTable()">
+        <select id="filter" onchange="renderTable()"><option value="all">All decisions</option><option value="promote">Promote</option><option value="block">Block</option><option value="ignore">Ignore</option><option value="review">Human review</option></select>
+        <label class="upload">📄 Upload CSV <input id="csvFile" type="file" accept=".csv" hidden onchange="loadCSV(event)"></label>
+        <button onclick="downloadCSV()">Export decisions</button>
+        <button class="primary" onclick="runDemo()">Run triage</button>
+      </div>
+      <div class="table-wrap"><table class="table"><thead><tr><th>Search term</th><th>Campaign</th><th>Clicks</th><th>Conversions</th><th>Cost</th><th>Decision</th><th>Confidence</th><th>Reason</th></tr></thead><tbody id="termTable"></tbody></table></div>
+      <div class="footer-note">Expected columns: query text, match type, campaign, ad group, impressions, clicks, cost, conversions, conversion value. The demo accepts common column-name variants.</div>
+    </div>
+  </section>
+
+  <section id="review" class="hidden">
+    <div class="panel">
+      <div class="panel-head"><h3>Human review queue</h3><span class="small">The system abstains when evidence is too thin</span></div>
+      <div class="table-wrap"><table class="table"><thead><tr><th>Term</th><th>Suggested call</th><th>Confidence</th><th>Why review?</th><th>Reviewer decision</th></tr></thead><tbody id="humanTable"></tbody></table></div>
+    </div>
+  </section>
+
+  <section id="rules" class="hidden">
+    <div class="panel">
+      <div class="panel-head"><h3>Decision logic</h3><span class="small">Transparent heuristic baseline for hackathon demo</span></div>
+      <div style="display:grid;gap:12px;font-size:13px;line-height:1.6">
+        <div><b>1. Intent signals</b><br>Commercial terms such as buy, price, quote, service, near me, booking, order increase promote evidence.</div>
+        <div><b>2. Negative signals</b><br>Free, jobs, careers, tutorial, definition, DIY, complaint and unrelated informational intent increase block evidence when they conflict with campaign intent.</div>
+        <div><b>3. Performance evidence</b><br>Clicks, conversion count, conversion value and cost are considered together. A single conversion from a tiny sample is not automatically promoted.</div>
+        <div><b>4. Abstention</b><br>Low sample size or conflicting signals produce <b>human review</b> rather than a forced decision.</div>
+        <div><b>5. Reason code</b><br>Every row receives a one-line, analyst-readable explanation so the decision can be checked before action.</div>
+      </div>
+    </div>
+  </section>
+</main>
+</div>
+
+<script>
+let rows = [
+ {q:"buy running shoes online",campaign:"Footwear - Search",clicks:84,conv:9,cost:214.20,value:1180},
+ {q:"free shoe samples",campaign:"Footwear - Search",clicks:31,conv:0,cost:42.10,value:0},
+ {q:"running shoe price near me",campaign:"Footwear - Search",clicks:18,conv:2,cost:39.80,value:260},
+ {q:"how to clean running shoes",campaign:"Footwear - Search",clicks:12,conv:0,cost:18.50,value:0},
+ {q:"best sports shoes for college",campaign:"Footwear - Search",clicks:6,conv:1,cost:14.30,value:110},
+ {q:"shoe jobs",campaign:"Footwear - Search",clicks:3,conv:0,cost:4.80,value:0},
+ {q:"nike running shoes alternative",campaign:"Footwear - Search",clicks:9,conv:1,cost:21.60,value:145},
+ {q:"cheap shoes",campaign:"Footwear - Search",clicks:2,conv:1,cost:8.40,value:70},
+ {q:"running shoes review",campaign:"Footwear - Search",clicks:17,conv:0,cost:31.70,value:0},
+ {q:"order trail running shoes",campaign:"Footwear - Search",clicks:42,conv:5,cost:121.30,value:760},
+ {q:"shoe repair shop",campaign:"Footwear - Search",clicks:4,conv:0,cost:10.20,value:0},
+ {q:"discount running shoes",campaign:"Footwear - Search",clicks:11,conv:1,cost:27.20,value:130}
+];
+
+function triage(r){
+  const text=(r.q||"").toLowerCase();
+  const positive=["buy","price","order","shop","purchase","quote","book","booking","near me","running shoes","sports shoes","discount"];
+  const negative=["free","jobs","job","career","tutorial","how to","definition","repair","complaint","course"];
+  let pos=positive.filter(x=>text.includes(x)).length;
+  let neg=negative.filter(x=>text.includes(x)).length;
+  let evidence=Math.min(1,(Number(r.clicks)||0)/25)+Math.min(1,(Number(r.conv)||0)/5);
+  let confidence=0.50+Math.min(.35,Math.max(0,evidence*.18)) + (pos*.07) - (neg*.12);
+  if ((r.clicks||0)<5) confidence-=.12;
+  confidence=Math.max(.38,Math.min(.98,confidence));
+  let decision="ignore",reason="";
+  if ((r.clicks||0)<5 || (r.clicks||0)<10 && !(r.conv>1)) {
+    decision="review"; reason="Small sample: not enough evidence for a reliable call.";
+  } else if(neg>0 && pos===0){
+    decision="block"; reason="Intent appears unrelated or outside the campaign objective.";
+  } else if(pos>0 && r.conv>=2 && r.clicks>=15){
+    decision="promote"; reason="Commercial intent is supported by meaningful click and conversion evidence.";
+  } else if(pos>0 && r.conv>0 && r.clicks>=10){
+    decision="review"; reason="Promising intent, but the sample is still too small to promote confidently.";
+  } else if(neg>0){
+    decision="block"; reason="Negative intent signal conflicts with the campaign's commercial purpose.";
+  } else {
+    decision="ignore"; reason="Insufficient performance or intent evidence to justify action.";
+  }
+  return {decision,confidence,reason};
+}
+function pill(d){return `<span class="pill p-${d}">${d==="review"?"HUMAN REVIEW":d.toUpperCase()}</span>`}
+function conf(c){return `<div class="conf"><div class="track"><div class="fill" style="width:${Math.round(c*100)}%"></div></div>${Math.round(c*100)}%</div>`}
+
+function renderTable(){
+  const q=document.getElementById("search").value.toLowerCase(), f=document.getElementById("filter").value;
+  const out=rows.map(r=>({...r,...triage(r)})).filter(r=>(!q||r.q.toLowerCase().includes(q))&&(f==="all"||r.decision===f));
+  document.getElementById("termTable").innerHTML=out.map(r=>`<tr class="${r.decision==="review"?"review":""}">
+    <td class="term">${r.q}</td><td>${r.campaign}</td><td>${r.clicks}</td><td>${r.conv}</td><td>₹${Number(r.cost).toFixed(2)}</td>
+    <td>${pill(r.decision)}</td><td>${conf(r.confidence)}</td><td class="reason">${r.reason}</td></tr>`).join("");
+}
+function renderReview(){
+  const out=rows.map(r=>({...r,...triage(r)})).filter(r=>r.decision==="review").sort((a,b)=>a.confidence-b.confidence);
+  document.getElementById("reviewTable").innerHTML=out.slice(0,6).map(r=>`<tr class="review"><td class="term">${r.q}</td><td>${pill(r.decision)}</td><td>${conf(r.confidence)}</td><td class="reason">${r.reason}</td><td><button onclick="approve('${r.q.replace(/'/g,"\\'")}')">Review</button></td></tr>`).join("");
+  document.getElementById("humanTable").innerHTML=out.map(r=>`<tr><td class="term">${r.q}</td><td>${pill(r.decision)}</td><td>${conf(r.confidence)}</td><td>${r.reason}</td><td><select onchange="reviewAction(this,'${r.q.replace(/'/g,"\\'")}')"><option>Choose...</option><option>Promote</option><option>Block</option><option>Ignore</option></select></td></tr>`).join("");
+}
+function approve(q){alert("Opening human review for: "+q+"\n\nA real implementation would show campaign context, similar queries and evidence before the analyst confirms the final action.");}
+function reviewAction(sel,q){if(sel.value!=="Choose...") alert("Reviewer decision saved for “"+q+"”: "+sel.value);}
+function updateKPIs(){
+  const a=rows.map(r=>({...r,...triage(r)})), total=a.length;
+  const count=x=>a.filter(r=>r.decision===x).length;
+  document.getElementById("kpiTerms").textContent=total.toLocaleString();
+  ["promote","block","ignore","review"].forEach(x=>document.getElementById("kpi"+x[0].toUpperCase()+x.slice(1)).textContent=count(x).toLocaleString());
+  const p=Math.round(count("promote")/total*100),b=Math.round(count("block")/total*100),i=Math.round(count("ignore")/total*100),rr=100-p-b-i;
+  document.getElementById("legP").textContent=p+"%";document.getElementById("legB").textContent=b+"%";document.getElementById("legI").textContent=i+"%";document.getElementById("legR").textContent=rr+"%";
+  document.querySelector(".donut").style.background=`conic-gradient(#60a5fa 0 ${p}%,#f87171 ${p}% ${p+b}%,#cbd5e1 ${p+b}% ${p+b+i}%,#fbbf24 ${p+b+i}% 100%)`;
+}
+function drawBars(){
+  const vals=[71,58,82,64,91,76,88], max=Math.max(...vals);
+  document.getElementById("barChart").innerHTML=vals.map(v=>`<div class="barwrap"><div class="bar prom" style="height:${v/max*85}%"></div><div class="bar bloc" style="height:${(100-v)/max*45+5}%"></div></div>`).join("");
+}
+function runDemo(){rows=rows.map(r=>({...r}));renderTable();renderReview();updateKPIs();alert("Triage run complete. Every term now has a decision, confidence and human-readable reason.");}
+function showSection(id,btn){document.querySelectorAll("main section").forEach(s=>s.classList.add("hidden"));document.getElementById(id).classList.remove("hidden");document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));btn.classList.add("active");}
+function loadCSV(e){
+  const file=e.target.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const lines=ev.target.result.trim().split(/\r?\n/), headers=lines[0].split(",").map(x=>x.trim().toLowerCase().replace(/["']/g,""));
+    const idx=(names)=>{for(const n of names){const i=headers.indexOf(n);if(i>=0)return i}return -1};
+    const qi=idx(["query text","query","search term","search_term","search query","search_query"]);
+    const ci=idx(["campaign","campaign name"]);
+    const cli=idx(["clicks","click"]);
+    const coi=idx(["conversions","conversion"]);
+    const costi=idx(["cost","spend"]);
+    const vi=idx(["conversion value","conversion_value","value"]);
+    rows=lines.slice(1).filter(Boolean).map(line=>{
+      const c=line.split(",").map(x=>x.trim().replace(/^"|"$/g,""));
+      return {q:c[qi>=0?qi:0],campaign:c[ci>=0?ci:1]||"Uploaded campaign",clicks:+(c[cli>=0?cli:2]||0),conv:+(c[coi>=0?coi:3]||0),cost:+(c[costi>=0?costi:4]||0),value:+(c[vi>=0?vi:5]||0)};
+    });
+    renderTable();renderReview();updateKPIs();alert(`Loaded ${rows.length.toLocaleString()} rows.`);
+  };
+  reader.readAsText(file);
+}
+function downloadCSV(){
+  const out=[["query","campaign","clicks","conversions","cost","decision","confidence","reason"],...rows.map(r=>{let t=triage(r);return [r.q,r.campaign,r.clicks,r.conv,r.cost,t.decision,t.confidence.toFixed(2),t.reason]})];
+  const blob=new Blob([out.map(r=>r.map(x=>`"${String(x).replace(/"/g,'""')}"`).join(",")).join("\n")],{type:"text/csv"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="triage_decisions.csv";a.click();
+}
+function tick(){document.getElementById("clock").textContent="Live · "+new Date().toLocaleTimeString();}
+drawBars();renderTable();renderReview();updateKPIs();tick();setInterval(tick,1000);
+</script>
+</body>
+</html>
