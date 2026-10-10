@@ -1,370 +1,210 @@
-﻿import json
-
+﻿import json, sys
 import pandas as pd
+import config as C
 
-from pipeline import make_payload
+HTML = r"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>query / sense - PS-01 Triage Engine</title><style>
+:root{--navy:#14233a;--bg:#f7f5f0;--line:#e9e5dc;--text:#1c2733;--mut:#697586;--amber:#e0a73a;--green:#2f7d5b;--red:#c0584a}
+*{box-sizing:border-box}html{font-size:15px}
+body{margin:0;font-family:"Plus Jakarta Sans",Inter,"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.45}
+button,input,select{font:inherit;color:inherit}
+.side{position:fixed;top:0;bottom:0;left:0;width:250px;background:var(--navy);color:#cbd5e1;padding:22px 14px;display:flex;flex-direction:column;gap:6px}
+.brand{display:flex;gap:12px;align-items:center;padding:4px 8px 22px}.lg{width:40px;height:40px;border-radius:10px;background:var(--amber);display:grid;place-items:center;color:#fff;font-size:18px}.brand b{display:block;color:#fff;font-size:17px}.brand small{font-size:10px;letter-spacing:.14em;color:#8ea0b8}
+.sec{font-size:10px;letter-spacing:.16em;color:#8ea0b8;padding:6px 10px}
+.side>button{display:flex;gap:12px;align-items:center;border:0;border-left:3px solid transparent;background:none;color:#cbd5e1;padding:12px;border-radius:8px;text-align:left;cursor:pointer;font-weight:600;font-size:15px}.side>button:hover{background:#1b3150}.side>button.on{background:#223a5a;color:#fff;border-left-color:var(--amber)}
+.bd{margin-left:auto;background:#3b4f6b;color:#f5c26b;border-radius:99px;padding:1px 9px;font-size:11px}
+.guide{margin-top:auto;border:1px solid #2c4263;border-radius:10px;padding:14px;font-size:12px;line-height:1.55;color:#9fb0c6}.guide b{color:var(--amber);display:block;margin-bottom:6px;font-size:13px}
+.main{margin-left:250px}.crumb{background:#fff;border-bottom:1px solid var(--line);padding:20px 40px;color:var(--mut);display:flex;justify-content:space-between;font-size:14px}.crumb b{color:var(--text)}
+.pg{padding:34px 40px 70px}.wrap{max-width:1240px;margin:0 auto}.hid{display:none!important}
+.eb{font-size:11px;letter-spacing:.16em;color:var(--mut);font-weight:700}h1{font-size:36px;margin:8px 0;letter-spacing:-.02em;line-height:1.15}h3{margin:0 0 4px;font-size:17px}.sub{color:var(--mut);margin:0 0 26px;max-width:700px;line-height:1.55;font-size:15px}small{color:var(--mut);font-size:12px}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px}
+.btn{background:var(--navy);color:#fff;border:0;border-radius:9px;padding:12px 20px;font-weight:700;cursor:pointer;font-size:14px;white-space:nowrap}.btn.am{background:var(--amber);color:#1c2733}.btn.ln{background:#fff;color:var(--text);border:1px solid var(--line)}.btn:disabled{opacity:.45;cursor:default}
+.card,.kpi,.rc{background:#fff;border:1px solid var(--line);border-radius:12px}.card{padding:24px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px}.kpi{padding:20px 22px}.kt{display:flex;justify-content:space-between;font-weight:600;font-size:14px}
+.ic{width:34px;height:34px;border-radius:9px;background:#eef2f6;color:#41566f;display:grid;place-items:center;font-size:15px}.ic.g{background:#e3f1ea;color:var(--green)}.ic.r{background:#f8e4e0;color:var(--red)}.ic.a{background:#fbefd6;color:#a8700f}
+.kv{font-size:34px;font-weight:800;margin:16px 0 6px;letter-spacing:-.02em}.kv.sm{font-size:28px}.ks{font-size:12px;color:var(--mut)}
+.pill{display:inline-block;padding:5px 11px;border-radius:99px;font-size:12px;font-weight:700;white-space:nowrap}.pill.promote{background:#e3f1ea;color:var(--green)}.pill.block{background:#f8e4e0;color:#a63f31}.pill.ignore{background:#e9edf2;color:#51606f}.pill.review{background:#fbefd6;color:#9a6508}
+.ct{font-size:12px;font-weight:700;padding:3px 10px;border-radius:7px}.ct.High{background:#e3f1ea;color:var(--green)}.ct.Medium{background:#fbefd6;color:#9a6508}.ct.Low{background:#f8e4e0;color:#a63f31}
+.tool{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}.tool input,.tool select{border:1px solid var(--line);background:#fff;border-radius:9px;padding:12px 14px;font-size:14px}.tool input{flex:1;min-width:260px}.cnt{align-self:center;color:var(--mut);font-size:13px;white-space:nowrap}
+.tw{overflow-x:auto;background:#fff;border:1px solid var(--line);border-radius:12px}table{width:100%;border-collapse:collapse;font-size:14px}th{text-align:left;font-size:11px;letter-spacing:.07em;color:var(--mut);padding:14px 12px;border-bottom:1px solid var(--line);white-space:nowrap}th.s{cursor:pointer}th.s:hover{color:var(--text)}td{padding:14px 12px;border-bottom:1px solid #f1eee7;vertical-align:top}tr:last-child td{border-bottom:0}
+.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}td small{display:block;margin-top:3px}.qq{min-width:220px}.why{min-width:270px;color:#4a5766;font-size:13px}.hn{color:#7a6530;margin-top:4px;font-size:12px}
+.pgr{display:flex;gap:14px;align-items:center;justify-content:space-between;margin-top:16px;color:var(--mut);font-size:13px}.pgr div{display:flex;gap:10px;align-items:center}.pgr button,.more button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:9px 16px;cursor:pointer;font-weight:600}.more{text-align:center;margin-top:16px}
+.tabs{display:inline-flex;background:#fff;border:1px solid var(--line);border-radius:10px;padding:4px;margin-bottom:18px}.tabs button{border:0;background:none;padding:10px 18px;border-radius:7px;cursor:pointer;font-weight:600;color:var(--mut)}.tabs button.on{background:#f1eee7;color:var(--text)}
+.rc{padding:22px 24px;margin-bottom:16px}.rtop{display:flex;justify-content:space-between;gap:20px}.rt{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:17px}.rm{color:var(--mut);font-size:13px;margin-top:8px}
+.od{border:1px solid var(--line);border-radius:9px;padding:10px 16px;text-align:center;align-self:flex-start}.od small{display:block;letter-spacing:.1em;margin-bottom:6px;font-size:10px}
+.wf{background:#f7f5f0;border-radius:8px;padding:12px 16px;margin:14px 0;font-size:14px}.hint{margin-top:6px;color:#6b5a2a;font-size:13px}
+.rbot{display:flex;gap:20px;align-items:flex-end;border-top:1px solid var(--line);padding-top:16px;flex-wrap:wrap}.ch{display:flex;gap:8px;margin-top:8px}.ch button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:10px 18px;cursor:pointer;font-weight:700;font-size:13px}.ch button:hover{background:#f4f6f9}.ch button.on{background:#e8eef6;border-color:#7d97bb;color:#14233a}
+.nt{flex:1;min-width:240px}.nt input{width:100%;border:1px solid var(--line);border-radius:8px;padding:11px 12px;margin-top:8px;font-size:14px}.save{background:var(--navy);color:#fff;border:0;border-radius:8px;padding:12px 18px;font-weight:700;cursor:pointer}
+.empty{padding:50px;text-align:center;color:var(--mut)}.g2{display:grid;grid-template-columns:1.45fr 1fr;gap:20px;margin-bottom:20px}.g3{display:grid;grid-template-columns:1.45fr 1fr;gap:20px;margin-bottom:20px}.g4{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
+.br{display:grid;grid-template-columns:130px 1fr 80px;gap:14px;align-items:center;margin-top:16px}.br b{text-align:right}.bt{height:8px;background:#f1eee7;border-radius:9px;overflow:hidden}.bt i{display:block;height:100%;border-radius:9px}
+.bt i.promote,.bt i.cfHigh{background:var(--green)}.bt i.block,.bt i.cfLow{background:var(--red)}.bt i.ignore{background:#94a3b8}.bt i.review,.bt i.cfMedium{background:var(--amber)}
+.cp{display:grid;grid-template-columns:130px 1fr 130px;gap:14px;align-items:center;margin-top:18px}.cpl{display:flex;justify-content:space-between;font-size:12px;color:var(--mut);margin-bottom:6px}.bv{text-align:right}.bv small{display:block}
+.donut{width:150px;height:150px;border-radius:50%;margin:14px auto 20px;display:grid;place-items:center}.donut>div{width:106px;height:106px;border-radius:50%;background:#fff;display:grid;place-content:center;text-align:center;font-weight:800;font-size:22px;line-height:1.1}.donut small{font-size:9px;letter-spacing:.12em;font-weight:600}
+.nba{background:var(--navy);color:#fff;border-radius:12px;padding:30px;display:flex;flex-direction:column;justify-content:center}.nba h2{margin:8px 0 12px;font-size:25px;line-height:1.25}.nba p{color:#b8c5d6;margin:0 0 22px;line-height:1.55}.nba .eb{color:#8ea0b8}
+.vl{color:var(--mut);font-size:13px;cursor:pointer;float:right;font-weight:600}
+.xp{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}.xh{background:#223a5a;color:#fff;padding:30px}.xh h2{font-size:28px;margin:10px 0}.xh p{color:#b8c5d6;max-width:520px;margin:0;line-height:1.55}.xb{padding:22px}.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}.tile{background:#f7f5f0;border-radius:9px;padding:14px 16px;display:flex;gap:12px}.tile i{color:var(--green);font-style:normal;font-weight:800}.tile b{display:block;font-size:14px}.dl{display:flex;gap:12px;flex-wrap:wrap}
+.ol{padding-left:0;list-style:none;line-height:1.7;margin:16px 0 0}.ol li{margin-bottom:10px}
+.drop{display:grid;place-items:center;gap:6px;border:1.5px dashed #d9d3c5;border-radius:12px;padding:70px 20px;background:#fbfaf7;cursor:pointer;text-align:center;margin:18px 0}.up{font-size:30px}
+.note{background:#f3eee2;border:1px solid #ebe3cf;border-radius:10px;padding:16px 18px;font-size:13px;line-height:1.55;color:#5b5236;margin-top:16px}
+.rule{margin-top:12px;line-height:1.55;font-size:14px}
+@media(max-width:1100px){.side{display:none}.main{margin:0}.kpis{grid-template-columns:repeat(2,1fr)}.g2,.g3,.g4{grid-template-columns:1fr}.pg{padding:20px}}
+</style></head><body>
+<aside class="side"><div class="brand"><div class="lg">&#10148;</div><div><b>query / sense</b><small>PS-01 &middot; TRIAGE ENGINE</small></div></div><div class="sec">WORKSPACE</div>
+<button id="n-overview" onclick="go('overview')"><span>&#9638;</span>Overview</button>
+<button id="n-upload" onclick="go('upload')"><span>&#8679;</span>Upload report</button>
+<button id="n-terms" onclick="go('terms')"><span>&#9776;</span>Search terms</button>
+<button id="n-review" onclick="go('review')"><span>&#9873;</span>Human review<span class="bd" id="rbadge">0</span></button>
+<button id="n-analytics" onclick="go('analytics')"><span>&#9636;</span>Analytics</button>
+<button id="n-export" onclick="go('export')"><span>&#8681;</span>Export results</button>
+<div class="guide"><b>Decision guide</b>Low-data queries stay in Human Review. Original triage decisions are always preserved.</div></aside>
+<div class="main"><div class="crumb"><span>Workspace / <b id="crumb">Overview</b></span><span>Google Ads search terms</span></div>
 
-df = pd.read_csv("output.csv")
-data = make_payload(df)
-payload = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
+<section id="p-overview" class="pg"><div class="wrap"><div class="head"><div><div class="eb">PERFORMANCE AT A GLANCE</div><h1>Search term overview</h1><p class="sub">A clear read on what your query report is telling you, and where a human should take a closer look.</p></div><button class="btn" onclick="go('upload')">&#8679; Upload report</button></div>
+<div class="kpis" id="kpis"></div>
+<div class="g3"><div class="card"><h3>Conversion performance</h3><small>Conversions and attributed value by triage decision</small><div id="ov1"></div></div>
+<div class="card"><h3>Confidence mix</h3><small>Signal strength across triaged terms</small><div class="donut" id="dc1"><div><span id="dv1"></span><small>TERMS</small></div></div><div id="cf1"></div></div></div>
+<div class="g3"><div class="card"><h3>Decision breakdown <span class="vl" onclick="go('terms')">View terms &rarr;</span></h3><small>How the triage engine sorted this report</small><div id="ov3"></div></div>
+<div class="nba"><div class="eb">NEXT BEST ACTION</div><h2>Keep uncertain queries in human hands.</h2><p id="nbat"></p><div><button class="btn am" onclick="go('review')">Open review queue &rarr;</button></div></div></div></div></section>
 
-TEMPLATE = r"""<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Search Term Triage Engine</title>
-<style>
-:root{--bg:#f5f7fb;--card:#fff;--text:#172033;--muted:#667085;--line:#e6eaf0;
---blue:#2563eb;--green:#16a34a;--red:#dc2626;--amber:#d97706}
-*{box-sizing:border-box}
-body{margin:0;font-family:Inter,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--text)}
-.sidebar{width:235px;background:#111827;color:#fff;padding:22px 16px;position:fixed;top:0;bottom:0}
-.logo{font-size:18px;font-weight:800;padding:8px 10px 24px}.logo span{color:#60a5fa}
-.nav{display:grid;gap:7px}
-.nav button{border:0;background:transparent;color:#cbd5e1;text-align:left;padding:11px 12px;border-radius:9px;cursor:pointer;font-size:14px}
-.nav button.active,.nav button:hover{background:#1f2937;color:#fff}
-.side-note{position:absolute;left:16px;right:16px;bottom:20px;padding:12px;background:#1f2937;border-radius:10px;color:#9ca3af;font-size:11px;line-height:1.5}
-.main{margin-left:235px;padding:22px 28px}
-.title h1{font-size:24px;margin:0 0 5px}.title p{margin:0 0 20px;color:var(--muted);font-size:13px}
-.cards{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:18px}
-.card,.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
-.label{font-size:12px;color:var(--muted)}.value{font-size:25px;font-weight:800;margin-top:7px}
-.sub{font-size:11px;color:var(--muted);margin-top:5px}
-.green{color:var(--green)}.red{color:var(--red)}.amber{color:var(--amber)}
-.grid2{display:grid;grid-template-columns:1.35fr 1fr;gap:16px;margin-bottom:16px}
-.panel h3{margin:0;font-size:15px}
-.panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
-.small{font-size:11px;color:var(--muted)}
-.bk{display:grid;grid-template-columns:90px 1fr 60px;gap:10px;align-items:center;margin:11px 0;font-size:12px}
-.seg{display:flex;height:20px;border-radius:5px;overflow:hidden;background:#eef2f7}
-.seg div{height:100%}
-.c-promote{background:#60a5fa}.c-block{background:#f87171}.c-ignore{background:#cbd5e1}.c-review{background:#fbbf24}
-.donutbox{display:flex;align-items:center;gap:25px;min-height:200px}
-.donut{width:150px;height:150px;border-radius:50%;position:relative;flex:none}
-.donut:after{content:"";position:absolute;inset:35px;background:white;border-radius:50%}
-.legend{display:grid;gap:12px;font-size:12px}
-.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:7px}
-.toolbar{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:12px}
-.toolbar input,.toolbar select,button.b{border:1px solid var(--line);background:#fff;border-radius:8px;padding:9px 11px;font-size:12px}
-.toolbar input{min-width:230px}button.b{cursor:pointer}
-.primary{background:var(--blue)!important;color:#fff;border-color:var(--blue)!important}
-.table-wrap{overflow:auto}
-.table{width:100%;border-collapse:collapse;font-size:12px}
-.table th{background:#f8fafc;color:#667085;text-align:left;font-weight:700}
-.table th,.table td{padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
-.term{font-weight:650}.reason{color:#475467;max-width:330px}
-.pill{padding:4px 8px;border-radius:999px;font-size:10px;font-weight:700;display:inline-block;white-space:nowrap}
-.p-promote{background:#dcfce7;color:#166534}.p-block{background:#fee2e2;color:#991b1b}
-.p-ignore{background:#eef2f7;color:#475467}.p-review{background:#fef3c7;color:#92400e}
-.cf{font-size:11px;font-weight:700}.cf-high{color:#166534}.cf-medium{color:#92400e}.cf-low{color:#991b1b}
-.tag{font-size:10px;color:#7c3aed;font-weight:700;margin-left:6px}
-.pager{display:flex;gap:10px;align-items:center;margin-top:12px;font-size:12px;color:var(--muted)}
-.hidden{display:none}
-.upbar{display:flex;align-items:center;gap:14px;margin-bottom:18px}
-.upl{background:var(--blue);color:#fff;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer}
-.hintbox{background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px;font-size:13px;margin:12px 0}
-.actions{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
-.actions button{padding:10px 16px;font-size:13px;font-weight:600}
-.rule{font-size:13px;line-height:1.6;margin-bottom:12px}
-@media(max-width:1000px){.sidebar{display:none}.main{margin-left:0}.cards{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}}
-</style>
-</head>
-<body>
-<aside class="sidebar">
-  <div class="logo">Triage<span>Engine</span></div>
-  <div class="nav">
-    <button data-s="overview" class="active" onclick="showSection('overview')">Overview</button>
-    <button data-s="terms" onclick="showSection('terms')">Search Terms</button>
-    <button data-s="review" onclick="showSection('review')">Human Review</button>
-    <button data-s="rules" onclick="showSection('rules')">How it decides</button>
-  </div>
-  <div class="side-note"><b>Human-in-the-loop</b><br>Terms with too little data are not guessed. They go to review.</div>
-</aside>
+<section id="p-upload" class="pg hid"><div class="wrap"><div class="eb">BRING IN A REPORT</div><h1>Upload search terms</h1><p class="sub">Start with a Google Ads search terms CSV. The Python engine runs on the server and makes every decision.</p>
+<div class="g2"><div class="card"><h3>Choose your CSV file</h3><small>Google Ads search terms report &middot; CSV format</small>
+<label class="drop" ondragover="event.preventDefault()" ondrop="event.preventDefault();pf(event.dataTransfer.files[0])"><input type="file" accept=".csv" hidden onchange="pf(this.files[0])"><div class="up">&#8679;</div><b id="fname">Drop your report here</b><small>or click to browse &middot; CSV only</small></label>
+<div class="head" style="align-items:center"><small>Required fields: search term, impressions, clicks, cost</small><button class="btn" id="goBtn" disabled onclick="run()">Run triage</button></div></div>
+<div><div class="card"><h3>What happens next</h3><small>Careful by design, easy to audit.</small><ol class="ol"><li><b>01 &nbsp;Pool the rows</b><br><small>Same query in different match types is added together.</small></li><li><b>02 &nbsp;Apply triage</b><br><small>Promote, Block or Ignore, only with enough evidence.</small></li><li><b>03 &nbsp;Review uncertain terms</b><br><small>Low-data queries are held for a person, not guessed.</small></li></ol></div><div class="note"><b>Source decisions stay intact.</b> Reviewer corrections are recorded separately. Export includes both decisions so the audit trail remains clear.</div></div></div></div></section>
 
-<main class="main">
-  <div class="title"><h1>Search Term Triage Engine</h1>
-  <p>Promote / block / ignore for every term, with a confidence level and a one-line reason</p></div>
+<section id="p-terms" class="pg hid"><div class="wrap"><div class="eb">EXPLORE THE REPORT</div><h1>Search terms</h1><p class="sub">Search, sort, and filter every query. Click a column heading to sort. A reviewer correction shows next to the original decision.</p>
+<div class="tool"><input id="q" placeholder="Search query, campaign or ad group..." oninput="rTerms()"><select id="fd" onchange="rTerms()"><option value="all">All decisions</option><option value="promote">Promote</option><option value="block">Block</option><option value="ignore">Ignore</option><option value="review">Human Review</option></select><select id="fc" onchange="rTerms()"><option value="all">All confidence</option><option>High</option><option>Medium</option><option>Low</option></select><select id="fk" onchange="rTerms()"></select><select id="fp" onchange="rTerms()"><option value="25">25 / page</option><option value="50" selected>50 / page</option><option value="100">100 / page</option></select><button class="btn ln" onclick="clr()">Reset</button></div>
+<div class="tw"><table><thead><tr><th class="s" onclick="srt('q')">QUERY &#8645;</th><th class="s" onclick="srt('camp')">CAMPAIGN &#8645;</th><th class="s" onclick="srt('ag')">AD GROUP &#8645;</th><th class="s" onclick="srt('c')" style="text-align:right">CLICKS &#8645;</th><th class="s" onclick="srt('k')" style="text-align:right">COST &#8645;</th><th class="s" onclick="srt('v')" style="text-align:right">CONV. &#8645;</th><th>DECISION</th><th>CONFIDENCE</th><th>REASON</th></tr></thead><tbody id="tb"></tbody></table></div><div class="pgr"><span id="cnt"></span><div id="pg"></div></div></div></section>
 
-  <div class="upbar"><label class="upl">Upload CSV<input type="file" accept=".csv" hidden onchange="uploadCSV(this)"></label><span class="small" id="upStatus">Showing the default dataset. Upload a search-terms CSV to run the triage on it.</span></div>
-<section id="overview">
-    <div class="cards" id="cards"></div>
-    <div class="grid2">
-      <div class="panel">
-        <div class="panel-head"><h3>Decisions by click volume</h3><span class="small">Model decisions, before review</span></div>
-        <div id="buckets"></div>
-        <div class="small" id="bucketNote"></div>
-      </div>
-      <div class="panel">
-        <div class="panel-head"><h3>Current decisions</h3><span class="small">Including reviewer calls</span></div>
-        <div class="donutbox"><div class="donut" id="donut"></div><div class="legend" id="legend"></div></div>
-      </div>
-    </div>
-    <div class="panel">
-      <div class="panel-head"><h3>Biggest review groups</h3><span class="small">Similar terms, decided together</span></div>
-      <div class="table-wrap"><table class="table">
-        <thead><tr><th>Shared word</th><th>Terms</th><th>Total cost</th><th>Evidence leans</th><th></th></tr></thead>
-        <tbody id="topGroups"></tbody></table></div>
-    </div>
-  </section>
+<section id="p-review" class="pg hid"><div class="wrap"><div class="head"><div><div class="eb">HUMAN-IN-THE-LOOP</div><h1>Review queue</h1><p class="sub">Give uncertain queries a considered decision. Corrections are saved without replacing the original recommendation.</p></div><span class="pill review" id="rcount"></span></div>
+<div class="tabs"><button id="t-need" onclick="tab='need';revN=50;rRev()"></button><button id="t-done" onclick="tab='done';revN=50;rRev()"></button></div>
+<div class="tool"><input id="rq" placeholder="Search queries in this list..." oninput="revN=50;rRev()"><select id="rs" onchange="rRev()"><option value="k">Highest spend first</option><option value="c">Most clicks first</option></select></div>
+<div id="rl"></div><div class="more" id="rmore"></div></div></section>
 
-  <section id="terms" class="hidden">
-    <div class="panel">
-      <div class="panel-head"><h3>All search terms</h3><span class="small" id="countNote"></span></div>
-      <div class="toolbar">
-        <input id="search" placeholder="Search terms..." oninput="page=0;renderTerms()">
-        <select id="filter" onchange="page=0;renderTerms()">
-          <option value="all">All decisions</option><option value="promote">Promote</option>
-          <option value="block">Block</option><option value="ignore">Ignore</option>
-          <option value="review">Needs review</option></select>
-        <button class="b" onclick="exportAll()">Export all decisions</button>
-        <button class="b" onclick="exportNeg()">Negatives (block)</button>
-        <button class="b" onclick="exportKw()">New keywords (promote)</button>
-      </div>
-      <div class="table-wrap"><table class="table">
-        <thead><tr><th>Search term</th><th>Campaign</th><th>Clicks</th><th>Conv.</th><th>Cost</th><th>Decision</th><th>Confidence</th><th>Reason</th></tr></thead>
-        <tbody id="termTable"></tbody></table></div>
-      <div class="pager">
-        <button class="b" onclick="prevPage()">Previous</button>
-        <span id="pageInfo"></span>
-        <button class="b" onclick="nextPage()">Next</button>
-        <span style="margin-left:auto">Sorted by cost, highest first</span>
-      </div>
-    </div>
-  </section>
+<section id="p-analytics" class="pg hid"><div class="wrap"><div class="eb">UNDERSTAND OUTCOMES</div><h1>Analytics</h1><p class="sub">Compare decisions against real account outcomes. Use conversion value, click volume, and confidence as context, not a black box.</p>
+<div class="g3"><div class="card"><h3>Conversion performance</h3><small>Conversions and value by triage outcome</small><div id="a1"></div></div><div class="card"><h3>Confidence distribution</h3><small>How certain the engine is about its decisions</small><div class="donut" id="dc2"><div><span id="dv2"></span><small>TERMS</small></div></div><div id="cf2"></div></div></div>
+<div class="g4"><div class="card"><h3>Clicks by decision</h3><small>Where search traffic is coming from</small><div id="a2"></div></div><div class="card"><h3>Cost by decision</h3><small>Spend associated with each recommendation</small><div id="a3"></div></div></div>
+<div class="card"><h3>How the engine decides</h3><small>Statistical test, thresholds live in config.py</small>__RULES__</div>
+<div class="note"><b>Read with care.</b> A decision label is not a performance guarantee. Conversion metrics reflect the uploaded report and its attribution settings.</div></div></section>
 
-  <section id="review" class="hidden">
-    <div class="panel">
-      <div class="panel-head"><h3>Human review</h3><span class="small" id="reviewNote"></span></div>
-      <div id="reviewBody"></div>
-    </div>
-  </section>
-
-  <section id="rules" class="hidden">
-    <div class="panel">
-      <div class="panel-head"><h3>How each term is decided</h3><span class="small">Computed in Python, shown here</span></div>
-      <div id="rulesBody"></div>
-    </div>
-  </section>
-</main>
-
+<section id="p-export" class="pg hid"><div class="wrap"><div class="eb">TAKE DECISIONS WITH YOU</div><h1>Export results</h1><p class="sub">Download the final report as CSV, with the original recommendation and any saved reviewer decision kept as separate fields.</p>
+<div class="g2"><div class="xp"><div class="xh"><div class="eb" style="color:#e0a73a">FINAL RESULTS</div><h2>One report. A clear audit trail.</h2><p>The export combines triage recommendations, confidence signals, reasons and completed reviewer corrections.</p></div>
+<div class="xb"><div class="tiles"><div class="tile"><i>&#10003;</i><div><b>Triage decision</b><small>Engine recommendation</small></div></div><div class="tile"><i>&#10003;</i><div><b>Reviewer decision</b><small>Human correction, if saved</small></div></div><div class="tile"><i>&#10003;</i><div><b>Confidence</b><small>High / medium / low</small></div></div><div class="tile"><i>&#10003;</i><div><b>Reason</b><small>Why a decision was suggested</small></div></div></div>
+<div class="dl"><button class="btn am" onclick="exAll()">&#8681; Download CSV</button><button class="btn ln" onclick="exNeg()">negatives.csv</button><button class="btn ln" onclick="exKw()">keywords.csv</button></div><p><small id="xinfo"></small></p></div></div>
+<div><div class="card"><h3>Before you export</h3><small>A quick check for a useful handoff.</small><ol class="ol"><li>01 &nbsp;Review pending uncertain terms where practical.</li><li>02 &nbsp;Keep original and reviewer decisions distinct downstream.</li><li>03 &nbsp;Use the confidence and reason columns to prioritize follow-up.</li></ol></div>
+<div class="note"><b>Export reflects the latest saved review decisions.</b><br>negatives.csv = terms finally decided Block. keywords.csv = terms finally decided Promote.</div>
+<p><button class="btn ln" onclick="exClear()">Clear saved reviewer decisions</button></p></div></div></div></section>
+</div>
 <script>
-let D, R, corr = {};
-function setData(data){
-  D = data;
-  R = D.rows.map(a => ({q:a[0], m:a[1], c:a[2], g:a[3], clicks:a[4], conv:a[5],
-    cost:a[6], dec:a[7], conf:a[8], reason:a[9], word:a[10], key:a[0]+"|"+a[2]+"|"+a[3]}));
-  R.sort((a,b) => b.cost - a.cost);
-  corr = {};
-  try { corr = JSON.parse(localStorage.getItem("corr_" + D.id) || "{}"); } catch(e) {}
-  selWord = null; page = 0;
-}
-function save(){ try { localStorage.setItem("corr_" + D.id, JSON.stringify(corr)); } catch(e) {} }
-
-const final = r => corr[r.key] || r.dec;
-const fmt = n => Number(n).toLocaleString();
-const money = n => Number(n).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
-const pct = x => (x*100).toFixed(2) + "%";
-const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const label = d => d === "review" ? "NEEDS REVIEW" : d.toUpperCase();
-const pill = d => `<span class="pill p-${d}">${label(d)}</span>`;
-const cf = c => `<span class="cf cf-${c.toLowerCase()}">${c}</span>`;
-
-function showSection(id){
-  document.querySelectorAll("main section").forEach(s => s.classList.add("hidden"));
-  document.getElementById(id).classList.remove("hidden");
-  document.querySelectorAll(".nav button").forEach(b => b.classList.toggle("active", b.dataset.s === id));
-}
-
-function pending(){ return R.filter(r => r.dec === "review" && !corr[r.key]); }
-function groups(){
-  const m = {};
-  for (const r of pending()) { if (!r.word) continue; (m[r.word] = m[r.word] || []).push(r); }
-  return Object.entries(m).map(([w, items]) => ({
-    w, items, n: items.length,
-    cost: items.reduce((s, r) => s + r.cost, 0),
-    lean: D.hints[w].lean
-  })).sort((a, b) => b.n - a.n);
-}
-
-/* ---------- Overview ---------- */
-function renderOverview(){
-  const cnt = {promote:0, block:0, ignore:0, review:0};
-  R.forEach(r => cnt[final(r)]++);
-  const total = R.length;
-  const cards = [
-    ["Terms processed", fmt(total), "", "Rows in output.csv"],
-    ["Promote", fmt(cnt.promote), "green", "Clear evidence of value"],
-    ["Block", fmt(cnt.block), "red", "Clear evidence of waste"],
-    ["Ignore", fmt(cnt.ignore), "", "Enough data, no clear signal"],
-    ["Needs review", fmt(cnt.review), "amber", "Too little data to call"]
-  ];
-  document.getElementById("cards").innerHTML = cards.map(c =>
-    `<div class="card"><div class="label">${c[0]}</div><div class="value ${c[2]}">${c[1]}</div><div class="sub">${c[3]}</div></div>`).join("");
-
-  let acc = 0; const stops = [];
-  const colors = {promote:"#60a5fa", block:"#f87171", ignore:"#cbd5e1", review:"#fbbf24"};
-  for (const k of ["promote","block","ignore","review"]) {
-    const p = cnt[k] / total * 100;
-    stops.push(`${colors[k]} ${acc}% ${acc + p}%`); acc += p;
-  }
-  document.getElementById("donut").style.background = `conic-gradient(${stops.join(",")})`;
-  document.getElementById("legend").innerHTML = ["promote","block","ignore","review"].map(k =>
-    `<div><i style="background:${colors[k]}"></i>${k === "review" ? "Needs review" : k[0].toUpperCase() + k.slice(1)} <b>${(cnt[k]/total*100).toFixed(1)}%</b></div>`).join("");
-
-  const B = [["1-4 clicks",1,4],["5-9 clicks",5,9],["10-29",10,29],["30-99",30,99],["100+",100,1e12]];
-  document.getElementById("buckets").innerHTML = B.map(([name, lo, hi]) => {
-    const sub = R.filter(r => r.clicks >= lo && r.clicks <= hi);
-    const n = sub.length || 1;
-    const c = {promote:0, block:0, ignore:0, review:0};
-    sub.forEach(r => c[r.dec]++);
-    const segs = ["promote","block","ignore","review"].map(k =>
-      `<div class="c-${k}" style="width:${c[k]/n*100}%" title="${k}: ${fmt(c[k])}"></div>`).join("");
-    return `<div class="bk"><span>${name}</span><div class="seg">${segs}</div><span class="small">${fmt(sub.length)}</span></div>`;
-  }).join("");
-  const low = R.filter(r => r.clicks < D.cfg.min_clicks).length;
-  document.getElementById("bucketNote").innerHTML =
-    `${fmt(low)} of ${fmt(total)} terms (${(low/total*100).toFixed(0)}%) have fewer than ${D.cfg.min_clicks} clicks. The system does not guess on these.
-     <br><span style="color:#60a5fa">&#9632;</span> promote &nbsp;<span style="color:#f87171">&#9632;</span> block &nbsp;<span style="color:#94a3b8">&#9632;</span> ignore &nbsp;<span style="color:#fbbf24">&#9632;</span> review`;
-
-  const g = groups().slice(0, 6);
-  document.getElementById("topGroups").innerHTML = g.length ? g.map(x =>
-    `<tr><td class="term">${esc(x.w)}</td><td>${fmt(x.n)}</td><td>${money(x.cost)}</td>
-     <td>${pill(x.lean)}</td><td><button class="b" onclick="openGroup('${x.w}')">Review</button></td></tr>`).join("")
-    : `<tr><td colspan="5" class="small">No pending groups.</td></tr>`;
-}
-
-/* ---------- Terms ---------- */
-let page = 0; const PS = 50;
-function filtered(){
-  const q = document.getElementById("search").value.toLowerCase();
-  const f = document.getElementById("filter").value;
-  return R.filter(r => (f === "all" || final(r) === f) && (!q || r.q.toLowerCase().includes(q)));
-}
-function renderTerms(){
-  const list = filtered();
-  const pages = Math.max(1, Math.ceil(list.length / PS));
-  if (page >= pages) page = pages - 1;
-  const rows = list.slice(page * PS, page * PS + PS);
-  document.getElementById("termTable").innerHTML = rows.map(r => {
-    const f = final(r), rev = !!corr[r.key];
-    return `<tr><td class="term">${esc(r.q)}</td><td>${esc(r.c)}</td><td>${fmt(r.clicks)}</td><td>${fmt(r.conv)}</td>
-      <td>${money(r.cost)}</td><td>${pill(f)}${rev ? '<span class="tag">REVIEWER</span>' : ''}</td>
-      <td>${rev ? "-" : cf(r.conf)}</td><td class="reason">${rev ? "Decided by reviewer" : esc(r.reason)}</td></tr>`;
-  }).join("");
-  document.getElementById("pageInfo").textContent = `Page ${page + 1} of ${pages}`;
-  document.getElementById("countNote").textContent = `${fmt(list.length)} terms`;
-}
-function prevPage(){ if (page > 0) { page--; renderTerms(); } }
-function nextPage(){ page++; renderTerms(); }
-
-/* ---------- Review ---------- */
-let selWord = null;
-function openGroup(w){ selWord = w; renderReview(); showSection("review"); }
-function applyGroup(decision){
-  const g = groups().find(x => x.w === selWord);
-  if (!g) return;
-  g.items.forEach(r => corr[r.key] = decision);
-  save(); renderAll();
-}
-function resetReview(){
-  if (!confirm("Remove all reviewer decisions?")) return;
-  corr = {}; save(); renderAll();
-}
-function renderReview(){
-  const g = groups();
-  const noHint = pending().filter(r => !r.word).length;
-  const done = Object.keys(corr).length;
-  document.getElementById("reviewNote").textContent = `${fmt(done)} terms decided by reviewer`;
-  let html = "";
-  if (!g.length) {
-    html += `<div class="hintbox">All groups with evidence are reviewed.</div>`;
-  } else {
-    if (!selWord || !g.find(x => x.w === selWord)) selWord = g[0].w;
-    const cur = g.find(x => x.w === selWord);
-    const opts = g.map(x => `<option value="${x.w}" ${x.w === selWord ? "selected" : ""}>${esc(x.w)}  -  ${fmt(x.n)} terms  -  leans ${x.lean}</option>`).join("");
-    html += `<div class="toolbar"><select style="min-width:320px;padding:9px" onchange="selWord=this.value;renderReview()">${opts}</select></div>
-      <div class="hintbox">${esc(D.hints[selWord].text)}</div>
-      <div class="actions">
-        ${["promote","block","ignore"].map(d =>
-          `<button class="b ${d === cur.lean ? "primary" : ""}" onclick="applyGroup('${d}')">${d[0].toUpperCase() + d.slice(1)} all ${fmt(cur.n)}</button>`).join("")}
-      </div>
-      <div class="small" style="margin-bottom:8px">Highest-cost terms in this group</div>
-      <div class="table-wrap"><table class="table">
-        <thead><tr><th>Search term</th><th>Clicks</th><th>Conv.</th><th>Cost</th><th>Why review</th></tr></thead>
-        <tbody>${cur.items.slice(0, 10).map(r =>
-          `<tr><td class="term">${esc(r.q)}</td><td>${fmt(r.clicks)}</td><td>${fmt(r.conv)}</td><td>${money(r.cost)}</td><td class="reason">${esc(r.reason)}</td></tr>`).join("")}</tbody></table></div>`;
-  }
-  html += `<div class="small" style="margin-top:16px">${fmt(noHint)} more terms have too little data and no word-level evidence. They stay in review; a bulk decision would be a guess.</div>
-    <div style="margin-top:12px"><button class="b" onclick="resetReview()">Reset reviewer decisions</button></div>`;
-  document.getElementById("reviewBody").innerHTML = html;
-}
-
-/* ---------- Rules ---------- */
-function renderRules(){
-  const c = D.cfg;
-  const items = [
-    ["1. Baseline", `Account conversion rate is ${pct(D.base)} (total conversions / total clicks). Each term is compared with the rate of its own campaign (campaigns differ a lot), not with zero.`],
-    ["2. Too little data", `Terms with fewer than ${c.min_clicks} clicks go to <b>human review</b>. Two clicks and one conversion is noise, not a winner.`],
-    ["3. Block", `Rate below the baseline, and a binomial test says the chance of this being bad luck is under ${c.alpha_block*100}%. Example: 60 clicks and 0 conversions when about 2 were expected.`],
-    ["4. Promote", `At least ${c.min_promote_conv} conversions, rate at least ${c.min_lift}x the baseline, and under ${c.alpha_promote*100}% chance it is luck. Stricter than block because a wrong promote costs money.`],
-    ["5. Ignore", `Enough data, but no clear difference from the baseline.`],
-    ["6. Word-level hints", `For review terms, the system checks whether the words in the query are strong across many other terms. This is shown as evidence only. A person makes the call, and similar terms are decided together.`],
-    ["7. Reason and confidence", `Every row has a one-line reason with the numbers behind it, and a High / Medium / Low confidence based on how strong the evidence is.`]
-  ];
-  document.getElementById("rulesBody").innerHTML = items.map(i => `<div class="rule"><b>${i[0]}</b><br>${i[1]}</div>`).join("");
-}
-
-/* ---------- Export ---------- */
-function csvCell(x){ return '"' + String(x).replace(/"/g, '""') + '"'; }
-function download(name, header, rows){
-  const text = [header, ...rows].map(r => r.map(csvCell).join(",")).join("\n");
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([text], {type:"text/csv"}));
-  a.download = name; a.click();
-}
-function exportAll(){
-  download("triage_decisions.csv",
-    ["query","match_type","campaign","ad_group","decision","confidence","reason","source"],
-    R.map(r => { const rev = !!corr[r.key];
-      return [r.q, r.m, r.c, r.g, final(r), rev ? "" : r.conf, rev ? "Decided by reviewer" : r.reason, rev ? "reviewer" : "model"]; }));
-}
-function exportNeg(){
-  download("negatives.csv", ["query","match_type","campaign","ad_group"],
-    R.filter(r => final(r) === "block").map(r => [r.q, r.m, r.c, r.g]));
-}
-function exportKw(){
-  download("keywords.csv", ["query","match_type","campaign","ad_group"],
-    R.filter(r => final(r) === "promote").map(r => [r.q, r.m, r.c, r.g]));
-}
-
-function renderAll(){ renderOverview(); renderTerms(); renderReview(); }
-
-async function uploadCSV(inp){
-  const f = inp.files[0]; if (!f) return;
-  const st = document.getElementById("upStatus");
-  st.textContent = "Running triage on " + f.name + " ...";
-  try {
-    const res = await fetch("/triage", {method:"POST", body:f});
-    const j = await res.json();
-    if (!res.ok) throw new Error(j.error || "Server error");
-    setData(j); renderRules(); renderAll(); showSection("overview");
-    st.textContent = "Loaded " + f.name + ": " + fmt(j.rows.length) + " terms";
-  } catch(e) {
-    st.textContent = "Upload failed: " + e.message +
-      (location.protocol === "file:" ? " (open the page via python server.py, not by double-clicking the file)" : "");
-  }
-  inp.value = "";
-}
-setData(__DATA__); renderRules(); renderAll();
-</script>
-</body>
-</html>
-"""
-
-html = TEMPLATE.replace("__DATA__", payload)
-with open("dashboard.html", "w", encoding="utf-8") as f:
-    f.write(html)
-print("dashboard.html created with", len(data["rows"]), "rows")
+let rows=__DATA__,ovr={},draft={},cur=[],page=0,revN=50,tab='need',sort={k:'k',dir:-1},file=null;
+try{ovr=JSON.parse(localStorage.getItem('ovr2')||'{}')}catch(e){}
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const N=x=>Number(x||0).toLocaleString(undefined,{maximumFractionDigits:0});
+const M=x=>'$'+Number(x||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+const LBL={promote:'Promote',block:'Block',ignore:'Ignore',review:'Human Review'};
+const D4=['promote','block','ignore','review'];
+const pill=d=>`<span class="pill ${d}">&#9679; ${LBL[d]||d}</span>`;
+const ctag=c=>`<span class="ct ${c}">${c}</span>`;
+const key=r=>r.q+'|'+r.camp+'|'+r.ag;
+const persist=()=>{try{localStorage.setItem('ovr2',JSON.stringify(ovr))}catch(e){}};
+const fin=r=>{const o=ovr[key(r)];return o?o.d:r.d};
+const revAll=()=>rows.filter(r=>r.d==='review');
+const revNeed=()=>revAll().filter(r=>!ovr[key(r)]);
+const PAGES=['overview','upload','terms','review','analytics','export'];
+const TITLE={overview:'Overview',upload:'Upload report',terms:'Search terms',review:'Human review',analytics:'Analytics',export:'Export results'};
+function badge(){$('rbadge').textContent=N(revNeed().length)}
+function go(p){PAGES.forEach(x=>{$('p-'+x).classList.toggle('hid',x!==p);$('n-'+x).classList.toggle('on',x===p)});$('crumb').textContent=TITLE[p];({overview:rOver,terms:rTerms,review:rRev,analytics:rAna,upload:()=>{},export:rExp})[p]();badge();scrollTo(0,0)}
+function agg(){const a={},cf={High:0,Medium:0,Low:0};D4.forEach(d=>a[d]={n:0,c:0,v:0,k:0,cv:0});rows.forEach(r=>{const o=a[r.d]||(a[r.d]={n:0,c:0,v:0,k:0,cv:0});o.n++;o.c+=r.c;o.v+=r.v;o.k+=r.k;o.cv+=r.cv;cf[r.cf]=(cf[r.cf]||0)+1});return{a,cf}}
+const kpi=(t,v,s,i,c,sm)=>`<div class="kpi"><div class="kt">${t}<span class="ic ${c||''}">${i}</span></div><div class="kv ${sm?'sm':''}">${v}</div><div class="ks">${s}</div></div>`;
+function setDonut(d,v,l){const{cf}=agg(),T=rows.length||1,h=cf.High/T*100,m=h+cf.Medium/T*100;$(d).style.background=`conic-gradient(#2f7d5b 0 ${h}%,#e0a73a ${h}% ${m}%,#c0584a ${m}% 100%)`;$(v).textContent=N(rows.length);$(l).innerHTML=['High','Medium','Low'].map(x=>`<div class="br" style="grid-template-columns:80px 1fr 70px;margin-top:12px"><span>${x}</span><div class="bt"><i class="cf${x}" style="width:${Math.max(.5,(cf[x]||0)/T*100)}%"></i></div><b>${N(cf[x]||0)}</b></div>`).join('')}
+function rOver(){const{a,cf}=agg(),sum=f=>D4.reduce((s,d)=>s+a[d][f],0);
+$('kpis').innerHTML=kpi('Total terms',N(rows.length),'Unique terms after pooling','&#8981;')+kpi('Promote',N(a.promote.n),'Worth adding as keywords','&#8599;','g')+kpi('Block',N(a.block.n),'Potential negative keywords','&#10005;','r')+kpi('Ignore',N(a.ignore.n),'No action recommended','&#9719;')+kpi('Human review',N(a.review.n),'Too little data to decide','&#9873;','a')+kpi('High confidence',N(cf.High),'Strong supporting evidence','&#10003;','g')+kpi('Low confidence',N(cf.Low),'Limited sample or signal','?','r')+kpi('Total clicks',N(sum('c')),'Across all search terms','&#10148;')+kpi('Total conversions',N(sum('v')),'Reported conversion actions','&#10003;','g')+kpi('Total cost',M(sum('k')),'Spend in the imported report','~','a',1)+kpi('Conversion value',M(sum('cv')),'Value attributed to conversions','&#9638;','g',1);
+const mv=Math.max(1,...D4.map(d=>a[d].v)),mn=Math.max(1,...D4.map(d=>a[d].n));
+$('ov1').innerHTML=D4.map(d=>`<div class="cp">${pill(d)}<div><div class="cpl"><span>${N(a[d].v)} conversions</span><span>${N(a[d].c)} clicks</span></div><div class="bt"><i class="${d}" style="width:${Math.max(1,a[d].v/mv*100)}%"></i></div></div><div class="bv"><small>Value</small><b>${M(a[d].cv)}</b></div></div>`).join('');
+$('ov3').innerHTML=D4.map(d=>`<div class="br">${pill(d)}<div class="bt"><i class="${d}" style="width:${Math.max(1,a[d].n/mn*100)}%"></i></div><b>${N(a[d].n)}</b></div>`).join('');
+$('nbat').textContent=N(revNeed().length)+' terms are waiting for a decision. Your corrections are saved separately from the original triage.';
+setDonut('dc1','dv1','cf1')}
+function srt(k){sort=sort.k===k?{k,dir:-sort.dir}:{k,dir:-1};rTerms()}
+function pgo(d){page=Math.max(0,page+d);rTerms(true)}
+function clr(){$('q').value='';$('fd').value='all';$('fc').value='all';$('fk').value='all';rTerms()}
+function fillCamps(){const s=$('fk'),v=s.value||'all',c=[...new Set(rows.map(r=>r.camp))].sort();s.innerHTML='<option value="all">All campaigns</option>'+c.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');s.value=c.includes(v)?v:'all'}
+function rTerms(keep){if(keep!==true)page=0;if($('fk').options.length<2)fillCamps();
+const q=$('q').value.toLowerCase(),f=$('fd').value,c=$('fc').value,k=$('fk').value,PS=+$('fp').value;
+const a=rows.filter(r=>(!q||(r.q+' '+r.camp+' '+r.ag).toLowerCase().includes(q))&&(f==='all'||fin(r)===f)&&(c==='all'||r.cf===c)&&(k==='all'||r.camp===k));
+a.sort((x,y)=>(typeof x[sort.k]==='string'?x[sort.k].localeCompare(y[sort.k]):x[sort.k]-y[sort.k])*sort.dir);
+const n=Math.max(1,Math.ceil(a.length/PS));if(page>=n)page=n-1;const s=page*PS;
+$('tb').innerHTML=a.slice(s,s+PS).map(r=>{const f2=fin(r);return `<tr><td class="qq"><b>${esc(r.q)}</b><small>${esc(r.mt)} match &middot; ${N(r.i)} impr${r.n>1?' &middot; pooled '+r.n+' rows':''}</small></td><td>${esc(r.camp)}</td><td>${esc(r.ag)}</td><td class="num">${N(r.c)}</td><td class="num">${M(r.k)}</td><td class="num">${N(r.v)}<small>${M(r.cv)}</small></td><td>${pill(f2)}${f2!==r.d?`<small>reviewed, was ${LBL[r.d]}</small>`:''}</td><td>${ctag(r.cf)}</td><td class="why">${esc(r.why)}${r.h?`<div class="hn">${esc(r.h)}</div>`:''}</td></tr>`}).join('')||'<tr><td colspan="9" class="empty">No terms match these filters.</td></tr>';
+$('cnt').textContent=a.length?`Showing ${N(s+1)}-${N(Math.min(s+PS,a.length))} of ${N(a.length)}`:'Showing 0';
+$('pg').innerHTML=`<button onclick="pgo(-1)">&larr; Prev</button><span>Page ${page+1} / ${N(n)}</span><button onclick="pgo(1)">Next &rarr;</button>`}
+const dv=r=>draft[key(r)]||ovr[key(r)]||{};
+function rRev(){const need=revNeed(),done=revAll().filter(r=>ovr[key(r)]),q=($('rq').value||'').toLowerCase(),sk=$('rs').value;
+$('t-need').textContent='Needs Review ('+N(need.length)+')';$('t-done').textContent='Completed ('+N(done.length)+')';
+$('t-need').classList.toggle('on',tab==='need');$('t-done').classList.toggle('on',tab==='done');$('rcount').innerHTML='&#9719; '+N(need.length)+' to review';
+cur=(tab==='need'?need:done).filter(r=>!q||(r.q+' '+r.camp+' '+r.ag).toLowerCase().includes(q)).sort((a,b)=>b[sk]-a[sk]);
+$('rl').innerHTML=cur.slice(0,revN).map((r,i)=>{const x=dv(r);
+return `<div class="rc"><div class="rtop"><div><div class="rt"><b>${esc(r.q)}</b>${pill(r.d)}${ctag(r.cf)}</div><div class="rm">${esc(r.camp)} / ${esc(r.ag)} &middot; ${N(r.i)} impressions &middot; ${N(r.c)} clicks &middot; ${M(r.k)} cost &middot; ${N(r.v)} conversions</div></div><div class="od"><small>ORIGINAL DECISION</small>${pill(r.d)}</div></div><div class="wf"><b>Why flagged:</b> ${esc(r.why)}${r.h?`<div class="hint">${esc(r.h)}</div>`:''}</div><div class="rbot"><div><small>Choose a decision</small><div class="ch">${['promote','block','ignore'].map(z=>`<button class="${x.d===z?'on':''}" onclick="pick(${i},'${z}')">${LBL[z]}</button>`).join('')}</div></div><div class="nt"><small>Note</small><input placeholder="Optional context for this correction" value="${esc(x.note||'')}" oninput="nt(${i},this.value)"></div><button class="save" onclick="sv(${i})">&#10003; Save decision</button></div></div>`}).join('')||'<div class="empty">Nothing here.</div>';
+$('rmore').innerHTML=cur.length>revN?`<button onclick="revN+=50;rRev()">Show 50 more (${N(cur.length-revN)} left)</button>`:'';badge()}
+function pick(i,d){const k=key(cur[i]);draft[k]={...dv(cur[i]),d};rRev()}
+function nt(i,v){const k=key(cur[i]);draft[k]={...dv(cur[i]),note:v}}
+function sv(i){const r=cur[i],k=key(r),x=dv(r);if(!x.d){alert('Choose Promote, Block or Ignore first.');return}ovr[k]={d:x.d,note:x.note||''};delete draft[k];persist();rRev()}
+function rAna(){const{a}=agg(),w=(d,f)=>{const m=Math.max(1,...D4.map(z=>a[z][f]));return Math.max(1,a[d][f]/m*100)};
+$('a1').innerHTML=D4.map(d=>`<div class="cp">${pill(d)}<div><div class="cpl"><span>${N(a[d].v)} conversions</span><span>${N(a[d].c)} clicks</span></div><div class="bt"><i class="${d}" style="width:${w(d,'v')}%"></i></div></div><div class="bv"><small>Value</small><b>${M(a[d].cv)}</b></div></div>`).join('');
+$('a2').innerHTML=D4.map(d=>`<div class="br">${pill(d)}<div class="bt"><i class="${d}" style="width:${w(d,'c')}%"></i></div><b>${N(a[d].c)}</b></div>`).join('');
+$('a3').innerHTML=D4.map(d=>`<div class="br" style="grid-template-columns:130px 1fr 110px">${pill(d)}<div class="bt"><i class="${d}" style="width:${w(d,'k')}%"></i></div><b>${M(a[d].k)}</b></div>`).join('');
+setDonut('dc2','dv2','cf2')}
+function rExp(){$('xinfo').textContent=N(Object.keys(ovr).length)+' reviewer corrections saved in this browser. negatives.csv has '+N(rows.filter(r=>fin(r)==='block').length)+' terms, keywords.csv has '+N(rows.filter(r=>fin(r)==='promote').length)+' terms.'}
+function dl(name,H,A){const b=new Blob([[H,...A].map(r=>r.map(x=>`"${String(x==null?'':x).replace(/"/g,'""')}"`).join(',')).join('\n')],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click()}
+function exAll(){dl('triage_results.csv',['query','campaign','ad_group','match_type','impressions','clicks','cost','conversions','conversion_value','triage_decision','confidence','reason','hint','reviewer_decision','reviewer_note','final_decision'],rows.map(r=>{const o=ovr[key(r)]||{};return[r.q,r.camp,r.ag,r.mt,r.i,r.c,r.k,r.v,r.cv,r.d,r.cf,r.why,r.h,o.d||'',o.note||'',fin(r)]}))}
+function exNeg(){dl('negatives.csv',['campaign','ad_group','negative_keyword','match_type','reason'],rows.filter(r=>fin(r)==='block').map(r=>[r.camp,r.ag,r.q,'exact',r.why]))}
+function exKw(){dl('keywords.csv',['campaign','ad_group','keyword','match_type','reason'],rows.filter(r=>fin(r)==='promote').map(r=>[r.camp,r.ag,r.q,'exact',r.why]))}
+function exClear(){if(confirm('Remove all saved reviewer decisions from this browser?')){ovr={};persist();rExp();badge()}}
+function pf(f){file=f||null;$('fname').textContent=f?f.name:'Drop your report here';$('goBtn').disabled=!f}
+async function run(){if(!file)return;const b=$('goBtn');b.textContent='Processing...';b.disabled=true;try{const r=await fetch('/triage',{method:'POST',body:file});if(!r.ok)throw new Error(await r.text());rows=await r.json();$('fk').innerHTML='';go('overview')}catch(e){alert('Upload failed. Open the app through python server.py (http://localhost:8000). '+e.message)}b.textContent='Run triage';b.disabled=false}
+go('overview');
+</script></body></html>"""
 
 
+def to_rows(out):
+    out = out.copy()
+    for c in ["query", "campaign", "ad_group", "match_type", "reason", "hint", "confidence", "decision"]:
+        if c not in out.columns:
+            out[c] = ""
+    for c in ["impressions", "clicks", "conversions", "cost", "conversion_value", "n_rows"]:
+        if c not in out.columns:
+            out[c] = 0
+    out = out.fillna("")
+    rows = []
+    for r in out.to_dict("records"):
+        rows.append({"q": str(r["query"]), "camp": str(r["campaign"]), "ag": str(r["ad_group"]),
+                     "mt": str(r["match_type"]), "i": float(r["impressions"] or 0),
+                     "c": float(r["clicks"] or 0), "v": float(r["conversions"] or 0),
+                     "k": round(float(r["cost"] or 0), 2), "cv": round(float(r["conversion_value"] or 0), 2),
+                     "d": r["decision"], "cf": r["confidence"], "why": str(r["reason"]),
+                     "h": str(r["hint"]), "n": int(r["n_rows"] or 1)})
+    return rows
+
+
+def rules_html():
+    g = lambda k, d: getattr(C, k, d)
+    items = [
+        "<b>1. Pool the evidence.</b> Rows with the same query, campaign and ad group (different match types) are added together first.",
+        "<b>2. Compare with the campaign's own rate.</b> Each campaign has its own normal conversion rate, so a term is judged against its campaign.",
+        f"<b>3. Abstain on thin data.</b> Fewer than {g('MIN_CLICKS',10)} clicks means human review. 2 clicks and 1 conversion is noise.",
+        f"<b>4. Block.</b> Rate below the campaign rate and a binomial test says the chance of bad luck is under {g('ALPHA_BLOCK',0.05)*100:g}%.",
+        f"<b>5. Promote.</b> At least {g('MIN_PROMOTE_CONV',2)} conversions, rate at least {g('MIN_LIFT',1.5)}x the campaign rate, and chance of luck under {g('ALPHA_PROMOTE',0.01)*100:g}%.",
+        "<b>6. Hints.</b> Word-level evidence for review terms only (each term capped at 50 clicks). A human makes the call.",
+        "<b>7. Reason on every row</b> with the numbers, so it can be checked before action.",
+    ]
+    return "".join(f'<div class="rule">{x}</div>' for x in items)
+
+
+def render(rows, dest="dashboard.html"):
+    data = json.dumps(rows, separators=(",", ":")).replace("</", "<\\/")
+    h = HTML.replace("__DATA__", data).replace("__RULES__", rules_html())
+    open(dest, "w", encoding="utf-8").write(h)
+    print("Wrote", dest, "with", len(rows), "terms")
+
+
+if __name__ == "__main__":
+    src = sys.argv[1] if len(sys.argv) > 1 else "output.csv"
+    render(to_rows(pd.read_csv(src)))
