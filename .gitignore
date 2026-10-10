@@ -1,0 +1,14 @@
+﻿__pycache__/
+*.pyc
+.venv/
+data.csv
+make_data.py
+*_old.py
+*_old.txt
+pipeline_mid.txt
+output.csv
+output_by_row.csv
+review_queue.csv
+dashboard.html
+real.csv
+ps 1 report.csv
